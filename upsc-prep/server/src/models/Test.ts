@@ -32,42 +32,120 @@ export interface ITest extends Document {
 
 const testSettingsSchema = new Schema<ITestSettings>(
   {
-    marksPerCorrect: { type: Number, default: 2 },
-    negativeMarks: { type: Number, default: 0.6667 },
-    durationMinutes: { type: Number, required: true },
+    marksPerCorrect: {
+      type: Number,
+      default: 2,
+    },
+
+    negativeMarks: {
+      type: Number,
+      default: 0.6667,
+    },
+
+    durationMinutes: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
   },
-  { _id: false }
+  {
+    _id: false,
+  }
 );
 
 const testSchema = new Schema<ITest>(
   {
-    title: { type: String, required: true, trim: true },
-    description: { type: String },
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    description: {
+      type: String,
+      trim: true,
+    },
+
     testType: {
       type: String,
       enum: ["FULL_LENGTH", "SUBJECT", "TOPIC", "PYQ", "CUSTOM"],
       required: true,
     },
-    subjects: { type: [String], default: [] },
-    topics: { type: [String], default: [] },
-    questions: [{ type: Schema.Types.ObjectId, ref: "Question", required: true }],
+
+    subjects: {
+      type: [String],
+      default: [],
+    },
+
+    topics: {
+      type: [String],
+      default: [],
+    },
+
+    questions: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Question",
+        required: true,
+      },
+    ],
+
     difficulty: {
       type: String,
       enum: ["Easy", "Medium", "Hard", "Very Hard", "Mixed"],
       default: "Mixed",
     },
-    settings: { type: testSettingsSchema, required: true },
-    isPublished: { type: Boolean, default: true },
-    createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    attemptCount: { type: Number, default: 0 },
+
+    settings: {
+      type: testSettingsSchema,
+      required: true,
+    },
+
+    isPublished: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+
+    attemptCount: {
+      type: Number,
+      default: 0,
+    },
   },
-  { timestamps: true }
+
+  {
+    timestamps: true,
+  }
 );
 
+/**
+ * IMPORTANT:
+ *
+ * listTests() uses .select("-questions")
+ * Therefore this.questions can be undefined.
+ *
+ * Never directly use:
+ *   this.questions.length
+ *
+ * because it can cause:
+ *   Cannot read properties of undefined
+ */
 testSchema.virtual("totalQuestions").get(function (this: ITest) {
-  return this.questions.length;
+  return Array.isArray(this.questions) ? this.questions.length : 0;
 });
 
-testSchema.set("toJSON", { virtuals: true });
+testSchema.set("toJSON", {
+  virtuals: true,
+});
+
+testSchema.set("toObject", {
+  virtuals: true,
+});
 
 export const Test = model<ITest>("Test", testSchema);
